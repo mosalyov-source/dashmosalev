@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Личный дашборд</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #64748b;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 12px;
+    padding: 22px 24px;
+  }
+
+  .card-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .card-value {
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #f1f5f9;
+    margin-bottom: 14px;
+    min-height: 2.5rem;
+  }
+
+  .deltas {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .delta {
+    font-size: 0.82rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .delta-label { color: #64748b; flex: 1; }
+
+  .delta-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .delta-base {
+    font-size: 0.78rem;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .delta-val {
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.78rem;
+  }
+
+  .up   { color: #4ade80; background: rgba(74,222,128,0.1); }
+  .down { color: #f87171; background: rgba(248,113,113,0.1); }
+  .flat { color: #94a3b8; background: rgba(148,163,184,0.08); }
+
+  .skeleton {
+    background: linear-gradient(90deg, #2d3148 25%, #353b5a 50%, #2d3148 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+    height: 2rem;
+    width: 70%;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .news-card {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 12px;
+    padding: 22px 24px;
+  }
+
+  .news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .news-title {
+    font-size: 0.75rem;
+    color: #64748b;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .news-count {
+    font-size: 0.7rem;
+    color: #64748b;
+    background: #2d3148;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .news-list { display: flex; flex-direction: column; gap: 0; }
+
+  .news-item {
+    padding: 13px 0;
+    border-bottom: 1px solid #252a3d;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .news-item:last-child { border-bottom: none; }
+  .news-item:hover .news-headline { color: #818cf8; }
+
+  .news-headline {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    line-height: 1.45;
+    margin-bottom: 4px;
+    transition: color 0.15s;
+  }
+
+  .news-meta {
+    font-size: 0.72rem;
+    color: #475569;
+    display: flex;
+    gap: 10px;
+  }
+
+  .news-source { color: #6366f1; }
+
+  .error-msg {
+    font-size: 0.8rem;
+    color: #f87171;
+    padding: 8px 0;
+  }
+
+  .refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #2d3148;
+    border: 1px solid #3d4468;
+    color: #94a3b8;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    margin-bottom: 24px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .refresh-btn:hover { background: #353b5a; color: #e2e8f0; }
+  .refresh-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .updated {
+    font-size: 0.72rem;
+    color: #475569;
+    margin-left: 10px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #3d4468;
+    border-top-color: #818cf8;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Checklist ── */
+  .checklist-card {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin-top: 16px;
+  }
+
+  .checklist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .checklist-title {
+    font-size: 0.75rem;
+    color: #64748b;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .checklist-progress {
+    font-size: 0.7rem;
+    color: #64748b;
+    background: #2d3148;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .checklist-items { display: flex; flex-direction: column; gap: 0; }
+
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #252a3d;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .checklist-item:last-child { border-bottom: none; }
+
+  .checklist-item input[type="checkbox"] { display: none; }
+
+  .check-box {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #3d4468;
+    border-radius: 5px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    color: transparent;
+    font-size: 13px;
+  }
+
+  .checklist-item.done .check-box {
+    border-color: #4ade80;
+    background: rgba(74,222,128,0.15);
+    color: #4ade80;
+  }
+
+  .check-label {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    transition: color 0.15s;
+  }
+
+  .checklist-item.done .check-label {
+    color: #475569;
+    text-decoration: line-through;
+  }
+
+  /* ── Habits calendar ── */
+  .habits-card {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin-top: 16px;
+  }
+
+  .habits-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .habits-title {
+    font-size: 0.75rem;
+    color: #64748b;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .habits-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 0.72rem;
+    color: #64748b;
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  .habits-cal {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .cal-dow {
+    text-align: center;
+    font-size: 0.65rem;
+    color: #475569;
+    padding-bottom: 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    background: #252a3d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s;
+  }
+
+  .cal-day.empty { background: transparent; cursor: default; }
+  .cal-day.future { opacity: 0.35; cursor: default; }
+  .cal-day.today { box-shadow: 0 0 0 2px #818cf8; }
+
+  .cal-day-num {
+    font-size: 0.72rem;
+    color: #64748b;
+    line-height: 1;
+  }
+
+  .cal-dots {
+    display: flex;
+    gap: 2px;
+  }
+
+  .cal-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: #2d3148;
+    transition: background 0.12s;
+  }
+
+  .cal-dot.k-on  { background: #818cf8; }
+  .cal-dot.p-on  { background: #38bdf8; }
+
+  .habits-week {
+    display: flex;
+    gap: 20px;
+    font-size: 0.82rem;
+    color: #64748b;
+    border-top: 1px solid #252a3d;
+    padding-top: 14px;
+  }
+
+  .habit-stat strong { color: #e2e8f0; }
+  .habit-stat .goal-ok  { color: #4ade80; }
+  .habit-stat .goal-bad { color: #f87171; }
+</style>
+</head>
+<body>
+
+<h1>Личный дашборд</h1>
+
+<button class="refresh-btn" id="refreshBtn" onclick="loadAll()">
+  <span id="refreshIcon">↻</span> Обновить
+  <span class="updated" id="updatedAt"></span>
+</button>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label">USD / RUB</div>
+    <div class="card-value" id="usd-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="usd-deltas"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">RUB / AMD</div>
+    <div class="card-value" id="amd-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="amd-deltas"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Нефть Brent / USD</div>
+    <div class="card-value" id="oil-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="oil-deltas"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">BTC / USD</div>
+    <div class="card-value" id="btc-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="btc-deltas"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Ключевая ставка · ЦБ РФ</span>
+      <button onclick="editKeyRate()" title="Обновить вручную"
+        style="background:none;border:none;color:#64748b;cursor:pointer;font-size:1rem;padding:0;line-height:1">✎</button>
+    </div>
+    <div class="card-value" id="dep-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="dep-deltas"></div>
+    <div id="dep-meta" style="margin-top:10px;font-size:0.72rem;color:#475569;line-height:1.6"></div>
+  </div>
+</div>
+
+<div class="news-card">
+  <div class="news-header">
+    <span class="news-title">Главные новости · Сегодня</span>
+    <span class="news-count" id="news-count">—</span>
+  </div>
+  <div id="news-list" class="news-list">
+    <div class="skeleton" style="height:1rem;width:90%;margin-bottom:10px"></div>
+    <div class="skeleton" style="height:1rem;width:75%;margin-bottom:10px"></div>
+    <div class="skeleton" style="height:1rem;width:82%"></div>
+  </div>
+</div>
+
+<div class="grid" style="margin-top:16px" id="pop-grid">
+  <div class="card">
+    <div class="card-label">Население · Москва</div>
+    <div class="card-value" id="pop-moscow-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="pop-moscow-deltas"></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Население · Россия</div>
+    <div class="card-value" id="pop-russia-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="pop-russia-deltas"></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Население · Мир</div>
+    <div class="card-value" id="pop-world-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="pop-world-deltas"></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Население · США</div>
+    <div class="card-value" id="pop-usa-val"><div class="skeleton"></div></div>
+    <div class="deltas" id="pop-usa-deltas"></div>
+  </div>
+</div>
+
+<div class="news-card" style="margin-top:16px">
+  <div class="news-header">
+    <span class="news-title">M&amp;A · Технологии · Месяц</span>
+    <span class="news-count" id="ma-count">—</span>
+  </div>
+  <div id="ma-list" class="news-list">
+    <div class="skeleton" style="height:1rem;width:90%;margin-bottom:10px"></div>
+    <div class="skeleton" style="height:1rem;width:75%;margin-bottom:10px"></div>
+    <div class="skeleton" style="height:1rem;width:82%"></div>
+  </div>
+</div>
+
+<!-- Чеклист месяца -->
+<div class="checklist-card">
+  <div class="checklist-header">
+    <span class="checklist-title">Чеклист · <span id="cl-month"></span></span>
+    <span class="checklist-progress" id="cl-progress">0 / 4</span>
+  </div>
+  <div class="checklist-items" id="cl-items"></div>
+</div>
+
+<!-- Календарь привычек -->
+<div class="habits-card">
+  <div class="habits-header">
+    <span class="habits-title">Привычки · <span id="hab-month"></span></span>
+    <div class="habits-legend">
+      <span><span class="legend-dot" style="background:#818cf8"></span>Калистеника 3×/нед</span>
+      <span><span class="legend-dot" style="background:#38bdf8"></span>Бассейн 1×/нед</span>
+    </div>
+  </div>
+  <div class="habits-cal" id="hab-cal"></div>
+  <div class="habits-week" id="hab-week"></div>
+</div>
+
+<script>
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function fmtRate(v, decimals) {
+  decimals = decimals === undefined ? 2 : decimals;
+  return v.toLocaleString('ru-RU', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function deltaTag(now, then) {
+  if (!then || !now) return { pct: null, dir: 'flat' };
+  const diff = now - then;
+  const pct  = (diff / then) * 100;
+  const dir  = diff > 0.005 ? 'up' : diff < -0.005 ? 'down' : 'flat';
+  const sign = diff >= 0 ? '+' : '';
+  return { pct, dir, label: sign + pct.toFixed(2) + '%' };
+}
+
+function renderDeltas(containerId, rows) {
+  var el = document.getElementById(containerId);
+  el.innerHTML = rows.map(function(r) {
+    var d    = deltaTag(r.now, r.then);
+    var base = (r.then != null && r.fmt) ? '<span class="delta-base">(' + r.fmt(r.then) + ')</span>' : '';
+    if (d.pct === null) {
+      return '<div class="delta"><span class="delta-label">' + r.label + '</span><span class="delta-val flat">—</span></div>';
+    }
+    return '<div class="delta"><span class="delta-label">' + r.label + '</span>' +
+           '<span class="delta-right"><span class="delta-val ' + d.dir + '">' + d.label + '</span>' + base + '</span></div>';
+  }).join('');
+}
+
+function lastMonthEnd() {
+  var d = new Date();
+  d.setDate(0);
+  return d.toISOString().slice(0, 10);
+}
+
+function lastYearEnd() {
+  return (new Date().getFullYear() - 1) + '-12-31';
+}
+
+function decadeEnd() {
+  return (new Date().getFullYear() - 10) + '-12-31';
+}
+
+function yesterday() {
+  var d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function setSpinner(active) {
+  var btn  = document.getElementById('refreshBtn');
+  var icon = document.getElementById('refreshIcon');
+  btn.disabled = active;
+  icon.innerHTML = active ? '<span class="spinner"></span>' : '↻';
+}
+
+// ── USD/RUB ───────────────────────────────────────────────────────────────────
+
+// ЦБ РФ архив (cbr-xml-daily.ru) — для дат до 2020, когда jsDelivr недоступен
+async function cbrFetch(dateStr) {
+  // Пробуем дату и 3 дня назад (на случай выходных/праздников)
+  for (var offset = 0; offset <= 3; offset++) {
+    var d = new Date(dateStr);
+    d.setDate(d.getDate() - offset);
+    var yy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    try {
+      var url = 'https://www.cbr-xml-daily.ru/archive/' + yy + '/' + mm + '/' + dd + '/daily_json.js';
+      var j = await fetch(url, { signal: AbortSignal.timeout(6000) }).then(function(r) { return r.json(); });
+      if (j && j.Valute) return j.Valute;
+    } catch(e) {}
+  }
+  return null;
+}
+
+async function currencyFetch(currency, date) {
+  // date = 'latest' или 'YYYY-MM-DD'
+  // Для актуального курса — прямой Cloudflare Pages (без CDN-кеша)
+  // Для исторических — jsDelivr CDN
+  var urls = date === 'latest'
+    ? [ 'https://latest.currency-api.pages.dev/v1/currencies/' + currency + '.json',
+        'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/' + currency + '.json' ]
+    : [ 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@' + date + '/v1/currencies/' + currency + '.json',
+        'https://' + date + '.currency-api.pages.dev/v1/currencies/' + currency + '.json' ];
+
+  for (var i = 0; i < urls.length; i++) {
+    try {
+      var d = await fetch(urls[i]).then(function(r) { return r.json(); });
+      if (d && d[currency]) return d;
+    } catch(e) {}
+  }
+  throw new Error('currency fetch failed: ' + currency + ' ' + date);
+}
+
+async function loadUSDRUB() {
+  try {
+    var yest = yesterday();
+    var lme  = lastMonthEnd();
+    var lye  = lastYearEnd();
+
+    var lde  = decadeEnd();
+    var [curData, histY, histM, histLY, cbrDE] = await Promise.all([
+      currencyFetch('usd', 'latest'),
+      currencyFetch('usd', yest),
+      currencyFetch('usd', lme),
+      currencyFetch('usd', lye),
+      cbrFetch(lde),
+    ]);
+
+    var now = curData.usd.rub;
+    if (!now) throw new Error('no rate');
+
+    document.getElementById('usd-val').textContent = fmtRate(now) + ' ₽';
+
+    var cbrUsdDE = cbrDE && cbrDE.USD ? cbrDE.USD.Value : null;
+    var fmtRub = function(v) { return fmtRate(v) + ' ₽'; };
+    renderDeltas('usd-deltas', [
+      { label: 'к вчера',                    now: now, then: histY.usd  && histY.usd.rub,  fmt: fmtRub },
+      { label: 'к концу ' + lme.slice(0, 7), now: now, then: histM.usd  && histM.usd.rub,  fmt: fmtRub },
+      { label: 'к концу ' + lye.slice(0, 7), now: now, then: histLY.usd && histLY.usd.rub, fmt: fmtRub },
+      { label: 'к концу ' + lde.slice(0, 7), now: now, then: cbrUsdDE,                      fmt: fmtRub },
+    ]);
+  } catch (e) {
+    document.getElementById('usd-val').innerHTML = '<span style="font-size:1rem;color:#f87171">Ошибка загрузки</span>';
+    console.error('USD/RUB:', e);
+  }
+}
+
+// ── AMD/RUB ───────────────────────────────────────────────────────────────────
+
+async function loadAMDRUB() {
+  try {
+    var yest = yesterday();
+    var lme  = lastMonthEnd();
+    var lye  = lastYearEnd();
+
+    var lde  = decadeEnd();
+    var [curData, histY, histM, histLY, cbrDE] = await Promise.all([
+      currencyFetch('amd', 'latest'),
+      currencyFetch('amd', yest),
+      currencyFetch('amd', lme),
+      currencyFetch('amd', lye),
+      cbrFetch(lde),
+    ]);
+
+    var amdRub = curData.amd.rub;
+    if (!amdRub) throw new Error('no rate');
+    var now = 1 / amdRub;
+
+    document.getElementById('amd-val').textContent = fmtRate(now, 2) + ' ֏';
+
+    // CBR даёт AMD за Nominal=100, поэтому RUB/AMD = Value/100 → AMD/RUB = 100/Value
+    var cbrAmdDE = cbrDE && cbrDE.AMD ? 100 / cbrDE.AMD.Value : null;
+    var inv = function(x) { return x && x.amd && x.amd.rub ? 1 / x.amd.rub : null; };
+    var fmtAmd = function(v) { return fmtRate(v, 2) + ' ֏'; };
+    renderDeltas('amd-deltas', [
+      { label: 'к вчера',                    now: now, then: inv(histY),  fmt: fmtAmd },
+      { label: 'к концу ' + lme.slice(0, 7), now: now, then: inv(histM),  fmt: fmtAmd },
+      { label: 'к концу ' + lye.slice(0, 7), now: now, then: inv(histLY), fmt: fmtAmd },
+      { label: 'к концу ' + lde.slice(0, 7), now: now, then: cbrAmdDE,   fmt: fmtAmd },
+    ]);
+  } catch (e) {
+    document.getElementById('amd-val').innerHTML = '<span style="font-size:1rem;color:#f87171">Ошибка загрузки</span>';
+    console.error('AMD/RUB:', e);
+  }
+}
+
+// ── Brent Oil / USD ──────────────────────────────────────────────────────────
+
+// Коды месяцев для фьючерсов MOEX BR (F=янв … Z=дек)
+var BR_MONTHS = ['F','G','H','J','K','M','N','Q','U','V','X','Z'];
+
+function brContract(year, month) {
+  // month: 1-12
+  return 'BR' + BR_MONTHS[month - 1] + (year % 10);
+}
+
+function brFrontMonth(dateStr) {
+  // Фронт-месяц для даты = следующий календарный месяц
+  var d = new Date(dateStr);
+  var m = d.getMonth() + 2; // +1 следующий, +1 из-за 0-based
+  var y = d.getFullYear();
+  if (m > 12) { m = 1; y++; }
+  return brContract(y, m);
+}
+
+async function moexCandles(secid, from, till) {
+  var url = 'https://iss.moex.com/iss/engines/futures/markets/forts/boards/RFUD/securities/' +
+            secid + '/candles.json?interval=24&from=' + from + '&till=' + till + '&iss.meta=off';
+  var d = await fetch(url, { signal: AbortSignal.timeout(10000) }).then(function(r) { return r.json(); });
+  return d.candles && d.candles.data ? d.candles.data : [];
+}
+
+function lastCandleClose(candles, beforeDate) {
+  // candles: [[open,close,high,low,val,vol,begin,end], ...]
+  // begin формат: "2026-06-08 00:00:00"
+  var result = null;
+  for (var i = 0; i < candles.length; i++) {
+    var day = candles[i][6].slice(0, 10); // "YYYY-MM-DD"
+    if (day <= beforeDate) result = candles[i][1]; // close
+  }
+  return result;
+}
+
+async function loadOil() {
+  try {
+    // Текущая цена — MOEX фьючерс BR (ближайший месяц)
+    var today    = new Date().toISOString().slice(0, 10);
+    var frontNow = brFrontMonth(today);
+    var mdUrl    = 'https://iss.moex.com/iss/engines/futures/markets/forts/boards/RFUD/securities/' +
+                   frontNow + '.json?iss.meta=off&iss.only=marketdata';
+    var mdData   = await fetch(mdUrl, { signal: AbortSignal.timeout(10000) }).then(function(r) { return r.json(); });
+    var cols = mdData.marketdata.columns;
+    var row  = mdData.marketdata.data[0];
+    var now  = row[cols.indexOf('LAST')] || row[cols.indexOf('SETTLEPRICE')];
+    if (!now) throw new Error('no moex price');
+
+    document.getElementById('oil-val').textContent = '$' + fmtRate(now, 2);
+
+    // Исторические данные — MOEX candles для 2026-05 и 2025-12
+    var lme  = lastMonthEnd();
+    var lye  = lastYearEnd();
+    var lde  = decadeEnd();
+
+    function from5(d) { var dt = new Date(d); dt.setDate(dt.getDate() - 5); return dt.toISOString().slice(0, 10); }
+    function till1(d) { var dt = new Date(d); dt.setDate(dt.getDate() + 1); return dt.toISOString().slice(0, 10); }
+
+    // Alpha Vantage только для 2016-12 (MOEX не хранит такую старую историю)
+    var [candlesLme, candlesLye, avData] = await Promise.all([
+      moexCandles(brFrontMonth(lme), from5(lme), till1(lme)),
+      moexCandles(brFrontMonth(lye), from5(lye), till1(lye)),
+      fetch('https://www.alphavantage.co/query?function=BRENT&interval=monthly&apikey=demo', { signal: AbortSignal.timeout(15000) }).then(function(r) { return r.json(); }),
+    ]);
+
+    var thenLme = lastCandleClose(candlesLme, lme);
+    var thenLye = lastCandleClose(candlesLye, lye);
+
+    var thenLde = null;
+    var avRows  = avData && avData.data;
+    if (avRows) {
+      var ldeYM = lde.slice(0, 7);
+      for (var i = 0; i < avRows.length; i++) {
+        if (avRows[i].date.slice(0, 7) <= ldeYM) { thenLde = parseFloat(avRows[i].value); break; }
+      }
+    }
+
+    var fmtOil = function(v) { return '$' + fmtRate(v, 2); };
+    renderDeltas('oil-deltas', [
+      { label: 'к концу ' + lme.slice(0, 7), now: now, then: thenLme, fmt: fmtOil },
+      { label: 'к концу ' + lye.slice(0, 7), now: now, then: thenLye, fmt: fmtOil },
+      { label: 'к концу ' + lde.slice(0, 7), now: now, then: thenLde, fmt: fmtOil },
+    ]);
+  } catch (e) {
+    document.getElementById('oil-val').innerHTML = '<span style="font-size:1rem;color:#f87171">Ошибка загрузки</span>';
+    console.error('Oil:', e);
+  }
+}
+
+// ── BTC/USD (Binance public API) ──────────────────────────────────────────────
+
+function binanceKline(symbol, startMs) {
+  // Возвращает цену закрытия дневной свечи для указанной даты
+  var url = 'https://data-api.binance.vision/api/v3/klines?symbol=' + symbol +
+            '&interval=1d&startTime=' + startMs + '&limit=1';
+  return fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+    return (d && d[0]) ? parseFloat(d[0][4]) : null; // индекс 4 = close price
+  });
+}
+
+async function loadBTC() {
+  try {
+    var ticker = await fetch(
+      'https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT'
+    ).then(function(r) { return r.json(); });
+
+    var now = parseFloat(ticker.lastPrice);
+    if (!now) throw new Error('no price');
+
+    document.getElementById('btc-val').textContent = '$' + fmtRate(now, 0);
+
+    var thenYest = parseFloat(ticker.openPrice); // цена открытия 24ч назад
+
+    var lme   = lastMonthEnd();
+    var lye   = lastYearEnd();
+    var lde   = decadeEnd();
+    var lmeMs = new Date(lme + 'T00:00:00Z').getTime();
+    var lyeMs = new Date(lye + 'T00:00:00Z').getTime();
+    var ldeMs = new Date(lde + 'T00:00:00Z').getTime();
+
+    var [thenM, thenLY, thenDE] = await Promise.all([
+      binanceKline('BTCUSDT', lmeMs),
+      binanceKline('BTCUSDT', lyeMs),
+      binanceKline('BTCUSDT', ldeMs),
+    ]);
+
+    var fmtBtc = function(v) { return '$' + fmtRate(v, 0); };
+    renderDeltas('btc-deltas', [
+      { label: 'к вчера',                    now: now, then: thenYest, fmt: fmtBtc },
+      { label: 'к концу ' + lme.slice(0, 7), now: now, then: thenM,   fmt: fmtBtc },
+      { label: 'к концу ' + lye.slice(0, 7), now: now, then: thenLY,  fmt: fmtBtc },
+      { label: 'к концу ' + lde.slice(0, 7), now: now, then: thenDE,  fmt: fmtBtc },
+    ]);
+  } catch (e) {
+    document.getElementById('btc-val').innerHTML = '<span style="font-size:1rem;color:#f87171">Ошибка загрузки</span>';
+    console.error('BTC:', e);
+  }
+}
+
+// ── Deposit rates (CBR) ───────────────────────────────────────────────────────
+
+function cbrDate(dateStr) {
+  // YYYY-MM-DD → DD.MM.YYYY
+  var p = dateStr.split('-');
+  return p[2] + '.' + p[1] + '.' + p[0];
+}
+
+function loadKeyRate() {
+  var stored = JSON.parse(localStorage.getItem('keyRate') || 'null');
+
+  if (!stored) {
+    document.getElementById('dep-val').innerHTML =
+      '<span style="font-size:1rem;color:#94a3b8">Не задана</span>';
+    document.getElementById('dep-deltas').innerHTML = '';
+    document.getElementById('dep-meta').innerHTML =
+      'Нажмите ✎ чтобы ввести актуальную ставку · ' +
+      '<a href="https://cbr.ru/key-rate/" target="_blank" style="color:#6366f1;text-decoration:none">cbr.ru/key-rate/</a>';
+    return;
+  }
+
+  var now = stored.current;
+  document.getElementById('dep-val').textContent = now.toFixed(2) + '%';
+
+  var lme = lastMonthEnd();
+  var lye = lastYearEnd();
+
+  var fmtPct = function(v) { return v.toFixed(2) + '%'; };
+  renderDeltas('dep-deltas', [
+    { label: 'к концу ' + lme.slice(0, 7), now: now, then: stored.prevMonth || null, fmt: fmtPct },
+    { label: 'к концу ' + lye.slice(0, 7), now: now, then: stored.prevYear  || null, fmt: fmtPct },
+  ]);
+
+  document.getElementById('dep-meta').innerHTML =
+    'Обновлено вручную: ' + (stored.date || '—') + ' · ' +
+    '<a href="https://cbr.ru/key-rate/" target="_blank" style="color:#6366f1;text-decoration:none">cbr.ru/key-rate/</a>';
+}
+
+function editKeyRate() {
+  var stored = JSON.parse(localStorage.getItem('keyRate') || 'null') || {};
+
+  var cur  = prompt('Текущая ключевая ставка ЦБ, %\n(например: 21)', stored.current || '');
+  if (cur === null) return;
+  cur = parseFloat(cur.replace(',', '.'));
+  if (isNaN(cur)) return alert('Введите число, например: 21');
+
+  var pm = prompt('Ставка на конец прошлого месяца (' + lastMonthEnd().slice(0,7) + '), %\n(оставьте пустым если не менялась)', stored.prevMonth || cur);
+  var py = prompt('Ставка на конец прошлого года (2025-12), %\n(оставьте пустым если не менялась)', stored.prevYear || cur);
+
+  localStorage.setItem('keyRate', JSON.stringify({
+    current:   cur,
+    prevMonth: pm   ? parseFloat(pm.replace(',', '.'))   : cur,
+    prevYear:  py   ? parseFloat(py.replace(',', '.'))   : cur,
+    date:      new Date().toLocaleDateString('ru-RU'),
+  }));
+
+  loadKeyRate();
+}
+
+// ── News ──────────────────────────────────────────────────────────────────────
+
+function formatDate(s) {
+  try {
+    var d = new Date(s);
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch (e) { return ''; }
+}
+
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Новости — HN front page (без фильтров) ───────────────────────────────────
+
+async function loadNews() {
+  var el = document.getElementById('news-list');
+  try {
+    // front_page — текущие топ-истории HN
+    var url  = 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=5';
+    var data = await fetch(url, { signal: AbortSignal.timeout(10000) }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+    var hits = data.hits || [];
+
+    document.getElementById('news-count').textContent = hits.length ? (hits.length + ' новостей') : '0';
+
+    if (!hits.length) {
+      el.innerHTML = '<div style="padding:16px 0;color:#94a3b8;font-size:0.85rem;">Новостей не найдено.</div>';
+      return;
+    }
+
+    el.innerHTML = hits.map(function(h) {
+      var link = h.url || ('https://news.ycombinator.com/item?id=' + h.objectID);
+      var date = h.created_at ? formatDate(h.created_at) : '';
+      var pts  = h.points ? ' · ' + h.points + ' pts' : '';
+      return '<div class="news-item" onclick="window.open(\'' + link.replace(/'/g, "\\'") + '\',\'_blank\')">' +
+        '<div class="news-headline">' + escHtml(h.title || '') + '</div>' +
+        '<div class="news-meta">' +
+          '<span class="news-source">HN · ' + escHtml(h.author || '') + pts + '</span>' +
+          '<span>' + date + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    console.error('News:', e);
+    el.innerHTML = '<div style="padding:16px 0;color:#f87171;font-size:0.85rem;">Ошибка: ' + e.message + '</div>';
+  }
+}
+
+// ── Population ───────────────────────────────────────────────────────────────
+
+function fmtPop(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(2).replace('.', ',') + ' млрд';
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' млн';
+  return Math.round(n).toLocaleString('ru-RU');
+}
+
+function renderPopDeltas(containerId, now, then5, then10, then15, year) {
+  var rows = [
+    { label: '5 лет · ' + (year - 5),  now: now, then: then5  },
+    { label: '10 лет · ' + (year - 10), now: now, then: then10 },
+    { label: '15 лет · ' + (year - 15), now: now, then: then15 },
+  ];
+  var el = document.getElementById(containerId);
+  el.innerHTML = rows.map(function(r) {
+    var d = deltaTag(r.now, r.then);
+    var ref = r.then ? '<span style="color:#475569;font-size:0.7rem;margin-left:4px">(' + fmtPop(r.then) + ')</span>' : '';
+    var badge = d.pct === null
+      ? '<span class="delta-val flat">—</span>'
+      : '<span class="delta-val ' + d.dir + '">' + d.label + '</span>';
+    return '<div class="delta">' +
+      '<span class="delta-label">' + r.label + '</span>' +
+      '<span style="display:flex;align-items:center;gap:4px">' + badge + ref + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+// World Bank: возвращает массив {year, value} отсортированный desc
+async function fetchWBPop(countryCode) {
+  var url = 'https://api.worldbank.org/v2/country/' + countryCode +
+    '/indicator/SP.POP.TOTL?format=json&mrv=17&per_page=17';
+  var data = await fetch(url, { signal: AbortSignal.timeout(10000) }).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+  return (data[1] || []).filter(function(d) { return d.value != null; });
+}
+
+function wbFind(rows, targetYear) {
+  // Ищем ближайший год <= targetYear
+  for (var i = 0; i < rows.length; i++) {
+    if (parseInt(rows[i].date) <= targetYear) return rows[i].value;
+  }
+  return null;
+}
+
+async function loadPopulation() {
+  var curYear = new Date().getFullYear();
+
+  // Москва — Wikidata SPARQL (Q649, P1082)
+  try {
+    var sparql = 'SELECT ?pop ?year WHERE { wd:Q649 p:P1082 ?s. ?s ps:P1082 ?pop; pq:P585 ?d. BIND(YEAR(?d) AS ?year) } ORDER BY DESC(?year) LIMIT 20';
+    var wd = await fetch('https://query.wikidata.org/sparql?query=' + encodeURIComponent(sparql),
+      { headers: { Accept: 'application/sparql-results+json' }, signal: AbortSignal.timeout(10000) }
+    ).then(function(r) { return r.json(); });
+
+    var rows = wd.results.bindings.map(function(b) { return { year: parseInt(b.year.value), value: parseFloat(b.pop.value) }; });
+    // Берём максимальное значение для каждого года (разные переписи)
+    var byYear = {};
+    rows.forEach(function(r) { if (!byYear[r.year] || r.value > byYear[r.year]) byYear[r.year] = r.value; });
+
+    function findPop(y) {
+      for (var yr = y; yr >= y - 3; yr--) { if (byYear[yr]) return byYear[yr]; }
+      return null;
+    }
+
+    var now    = findPop(curYear);
+    var then5  = findPop(curYear - 5);
+    var then10 = findPop(curYear - 10);
+    var then15 = findPop(curYear - 15);
+    if (now) {
+      document.getElementById('pop-moscow-val').textContent = fmtPop(now);
+      renderPopDeltas('pop-moscow-deltas', now, then5, then10, then15, curYear);
+    }
+  } catch (e) { console.error('Pop Moscow:', e); document.getElementById('pop-moscow-val').innerHTML = '<span style="font-size:.9rem;color:#f87171">Нет данных</span>'; }
+
+  // Россия, Мир, США — World Bank
+  var configs = [
+    { code: 'RUS', valId: 'pop-russia-val', deltaId: 'pop-russia-deltas' },
+    { code: 'WLD', valId: 'pop-world-val',  deltaId: 'pop-world-deltas'  },
+    { code: 'USA', valId: 'pop-usa-val',    deltaId: 'pop-usa-deltas'    },
+  ];
+
+  await Promise.all(configs.map(async function(cfg) {
+    try {
+      var rows  = await fetchWBPop(cfg.code);
+      var now    = rows[0] && rows[0].value;
+      var year   = rows[0] && parseInt(rows[0].date);
+      var then5  = wbFind(rows, year - 5);
+      var then10 = wbFind(rows, year - 10);
+      var then15 = wbFind(rows, year - 15);
+      if (now) {
+        document.getElementById(cfg.valId).textContent = fmtPop(now);
+        renderPopDeltas(cfg.deltaId, now, then5, then10, then15, year);
+      }
+    } catch (e) {
+      console.error('Pop ' + cfg.code + ':', e);
+      document.getElementById(cfg.valId).innerHTML = '<span style="font-size:.9rem;color:#f87171">Нет данных</span>';
+    }
+  }));
+}
+
+// ── M&A deals this month ──────────────────────────────────────────────────────
+
+async function loadMA() {
+  var el = document.getElementById('ma-list');
+  var monthName = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  try {
+    var cutoff = new Date();
+    cutoff.setDate(1); cutoff.setHours(0,0,0,0); // начало текущего месяца
+
+    var [r1, r2] = await Promise.all([
+      fetch('https://hn.algolia.com/api/v1/search_by_date?query=acquires&tags=story&hitsPerPage=20', {signal: AbortSignal.timeout(10000)}).then(function(r){ return r.json(); }),
+      fetch('https://hn.algolia.com/api/v1/search_by_date?query=acquisition&tags=story&hitsPerPage=20', {signal: AbortSignal.timeout(10000)}).then(function(r){ return r.json(); }),
+    ]);
+
+    var all = (r1.hits || []).concat(r2.hits || []);
+    var MA_WORDS = ['acquires','acquired','acquisition','merger','merges','buys','bought','deal','takeover','purchase'];
+    // Только текущий месяц + реальный M&A заголовок + без Ask/Show/Tell HN
+    var filtered = all.filter(function(h) {
+      if (!h.created_at || new Date(h.created_at) < cutoff) return false;
+      var t = (h.title || '').toLowerCase();
+      if (/^(ask|show|tell) hn/i.test(h.title)) return false;
+      return MA_WORDS.some(function(w) { return t.indexOf(w) !== -1; });
+    });
+    // Сортировка по очкам, дедупликация, топ-5
+    filtered.sort(function(a, b) { return (b.points || 0) - (a.points || 0); });
+    var seen = {}, unique = [];
+    for (var i = 0; i < filtered.length; i++) {
+      var key = (filtered[i].title || '').slice(0, 50).toLowerCase();
+      if (!seen[key]) { seen[key] = true; unique.push(filtered[i]); }
+      if (unique.length >= 5) break;
+    }
+
+    document.getElementById('ma-count').textContent = unique.length ? (unique.length + ' сделок') : '0';
+
+    if (!unique.length) {
+      el.innerHTML = '<div style="padding:16px 0;color:#94a3b8;font-size:0.85rem;">Сделок в ' + monthName + ' не найдено.</div>';
+      return;
+    }
+
+    el.innerHTML = unique.map(function(h) {
+      var link = h.url || ('https://news.ycombinator.com/item?id=' + h.objectID);
+      var pts  = h.points ? ' · ' + h.points + ' pts' : '';
+      return '<div class="news-item" onclick="window.open(\'' + link.replace(/'/g, "\\'") + '\',\'_blank\')">' +
+        '<div class="news-headline">' + escHtml(h.title || '') + '</div>' +
+        '<div class="news-meta">' +
+          '<span class="news-source">HN · ' + escHtml(h.author || '') + pts + '</span>' +
+          '<span>' + (h.created_at ? formatDate(h.created_at) : '') + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    console.error('M&A:', e);
+    el.innerHTML = '<div style="padding:16px 0;color:#f87171;font-size:0.85rem;">Ошибка: ' + e.message + '</div>';
+  }
+}
+
+// ── Checklist ────────────────────────────────────────────────────────────────
+
+var CL_ITEMS = [
+  'Оплатить Рион',
+  'Подать показания электричества',
+  'Подать показания воды',
+  'Заплатить ипотеку',
+];
+
+function clKey() {
+  var d = new Date();
+  return 'checklist-' + d.getFullYear() + '-' + (d.getMonth() + 1);
+}
+
+function clLoad() {
+  return JSON.parse(localStorage.getItem(clKey()) || '{}');
+}
+
+function clSave(state) {
+  localStorage.setItem(clKey(), JSON.stringify(state));
+}
+
+function renderChecklist() {
+  var state   = clLoad();
+  var done    = CL_ITEMS.filter(function(_, i) { return state[i]; }).length;
+  var d       = new Date();
+  var monthRu = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+
+  document.getElementById('cl-month').textContent    = monthRu;
+  document.getElementById('cl-progress').textContent = done + ' / ' + CL_ITEMS.length;
+
+  document.getElementById('cl-items').innerHTML = CL_ITEMS.map(function(label, i) {
+    var isDone = !!state[i];
+    return '<label class="checklist-item' + (isDone ? ' done' : '') + '" onclick="clToggle(' + i + ')">' +
+      '<input type="checkbox"' + (isDone ? ' checked' : '') + '>' +
+      '<span class="check-box">' + (isDone ? '✓' : '') + '</span>' +
+      '<span class="check-label">' + escHtml(label) + '</span>' +
+    '</label>';
+  }).join('');
+}
+
+function clToggle(i) {
+  var state = clLoad();
+  state[i]  = !state[i];
+  clSave(state);
+  renderChecklist();
+}
+
+// ── Habits calendar ───────────────────────────────────────────────────────────
+
+var HABITS = [
+  { key: 'k', label: 'Калистеника', goal: 3, color: '#818cf8', cls: 'k-on' },
+  { key: 'p', label: 'Бассейн',     goal: 1, color: '#38bdf8', cls: 'p-on' },
+];
+
+function habKey() {
+  var d = new Date();
+  return 'habits-' + d.getFullYear() + '-' + (d.getMonth() + 1);
+}
+
+function habLoad() {
+  return JSON.parse(localStorage.getItem(habKey()) || '{}');
+}
+
+function habSave(state) {
+  localStorage.setItem(habKey(), JSON.stringify(state));
+}
+
+// Получить номер ISO-недели (пн=1..вс=7) для даты
+function weekOfMonth(date) {
+  // Считаем недели внутри месяца: неделя 1 = дни 1..7 от первого понедельника
+  // Для простоты используем ISO week number
+  var d   = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  var y   = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil(((d - y) / 86400000 + 1) / 7);
+}
+
+function renderHabits() {
+  var state  = habLoad();
+  var now    = new Date();
+  var year   = now.getFullYear();
+  var month  = now.getMonth();
+  var today  = now.getDate();
+
+  var monthRu = now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  document.getElementById('hab-month').textContent = monthRu;
+
+  var firstDay = new Date(year, month, 1).getDay(); // 0=вс
+  var daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Приводим к пн=0
+  var startOffset = (firstDay + 6) % 7;
+
+  var DOWS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  var html = DOWS.map(function(d) {
+    return '<div class="cal-dow">' + d + '</div>';
+  }).join('');
+
+  // Пустые ячейки до 1-го
+  for (var e = 0; e < startOffset; e++) {
+    html += '<div class="cal-day empty"></div>';
+  }
+
+  for (var day = 1; day <= daysInMonth; day++) {
+    var isToday  = day === today;
+    var isFuture = day > today;
+    var key      = String(day);
+    var dayState = state[key] || {};
+
+    var cls = 'cal-day';
+    if (isFuture) cls += ' future';
+    if (isToday)  cls += ' today';
+
+    var dots = HABITS.map(function(h) {
+      return '<span class="cal-dot' + (dayState[h.key] ? ' ' + h.cls : '') + '"></span>';
+    }).join('');
+
+    var onclick = isFuture ? '' : ' onclick="habToggle(' + day + ')"';
+    html += '<div class="' + cls + '"' + onclick + '>' +
+      '<span class="cal-day-num">' + day + '</span>' +
+      '<div class="cal-dots">' + dots + '</div>' +
+    '</div>';
+  }
+
+  document.getElementById('hab-cal').innerHTML = html;
+
+  // Статистика текущей недели
+  var curWeek = weekOfMonth(now);
+  var weekCounts = {};
+  HABITS.forEach(function(h) { weekCounts[h.key] = 0; });
+
+  for (var d2 = 1; d2 <= today; d2++) {
+    if (weekOfMonth(new Date(year, month, d2)) === curWeek) {
+      var ds = state[String(d2)] || {};
+      HABITS.forEach(function(h) {
+        if (ds[h.key]) weekCounts[h.key]++;
+      });
+    }
+  }
+
+  document.getElementById('hab-week').innerHTML =
+    '<span style="color:#475569;font-size:0.75rem;align-self:center">Эта неделя:</span>' +
+    HABITS.map(function(h) {
+      var count  = weekCounts[h.key];
+      var ok     = count >= h.goal;
+      var clsSt  = ok ? 'goal-ok' : 'goal-bad';
+      return '<span class="habit-stat">' +
+        '<span class="legend-dot" style="background:' + h.color + ';display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px"></span>' +
+        h.label + ': <strong class="' + clsSt + '">' + count + ' / ' + h.goal + '</strong>' +
+      '</span>';
+    }).join('');
+}
+
+function habToggle(day) {
+  var state = habLoad();
+  var key   = String(day);
+  if (!state[key]) state[key] = {};
+
+  // Циклически переключаем комбинации: нет → К → П → К+П → нет
+  var ds = state[key];
+  var k  = !!ds.k, p = !!ds.p;
+  if (!k && !p)      { ds.k = true;  ds.p = false; }
+  else if (k && !p)  { ds.k = false; ds.p = true;  }
+  else if (!k && p)  { ds.k = true;  ds.p = true;  }
+  else               { ds.k = false; ds.p = false;  delete state[key]; }
+
+  habSave(state);
+  renderHabits();
+}
+
+// ── orchestrate ───────────────────────────────────────────────────────────────
+
+async function loadAll() {
+  setSpinner(true);
+  document.getElementById('updatedAt').textContent = '';
+
+  document.getElementById('usd-val').innerHTML     = '<div class="skeleton"></div>';
+  document.getElementById('amd-val').innerHTML     = '<div class="skeleton"></div>';
+  document.getElementById('oil-val').innerHTML     = '<div class="skeleton"></div>';
+  document.getElementById('btc-val').innerHTML     = '<div class="skeleton"></div>';
+  document.getElementById('dep-val').innerHTML     = '<div class="skeleton"></div>';
+  document.getElementById('usd-deltas').innerHTML  = '';
+  document.getElementById('amd-deltas').innerHTML  = '';
+  document.getElementById('oil-deltas').innerHTML  = '';
+  document.getElementById('btc-deltas').innerHTML  = '';
+  document.getElementById('dep-deltas').innerHTML  = '';
+  document.getElementById('dep-meta').innerHTML    = '';
+  var skelHtml =
+    '<div class="skeleton" style="height:1rem;width:90%;margin-bottom:10px"></div>' +
+    '<div class="skeleton" style="height:1rem;width:75%;margin-bottom:10px"></div>' +
+    '<div class="skeleton" style="height:1rem;width:82%"></div>';
+
+  document.getElementById('news-list').innerHTML = skelHtml;
+  document.getElementById('news-count').textContent = '—';
+  document.getElementById('ma-list').innerHTML = skelHtml;
+  document.getElementById('ma-count').textContent = '—';
+
+  loadKeyRate();
+  renderChecklist();
+  renderHabits();
+  await Promise.all([loadUSDRUB(), loadAMDRUB(), loadOil(), loadBTC(), loadNews(), loadMA(), loadPopulation()]);
+
+  var now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('updatedAt').textContent = 'обновлено в ' + now;
+  setSpinner(false);
+}
+
+loadAll();
+</script>
+</body>
+</html>
