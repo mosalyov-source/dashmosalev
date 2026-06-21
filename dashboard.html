@@ -605,22 +605,24 @@ async function currencyFetch(currency, date) {
   throw new Error('currency fetch failed: ' + currency + ' ' + date);
 }
 
+function safe(promise) { return promise.catch(function() { return null; }); }
+
 async function loadUSDRUB() {
   try {
     var yest = yesterday();
     var lme  = lastMonthEnd();
     var lye  = lastYearEnd();
-
     var lde  = decadeEnd();
+
     var [curData, histY, histM, histLY, cbrDE] = await Promise.all([
       currencyFetch('usd', 'latest'),
-      currencyFetch('usd', yest),
-      currencyFetch('usd', lme),
-      currencyFetch('usd', lye),
-      cbrFetch(lde),
+      safe(currencyFetch('usd', yest)),
+      safe(currencyFetch('usd', lme)),
+      safe(currencyFetch('usd', lye)),
+      safe(cbrFetch(lde)),
     ]);
 
-    var now = curData.usd.rub;
+    var now = curData && curData.usd && curData.usd.rub;
     if (!now) throw new Error('no rate');
 
     document.getElementById('usd-val').textContent = fmtRate(now) + ' ₽';
@@ -628,10 +630,10 @@ async function loadUSDRUB() {
     var cbrUsdDE = cbrDE && cbrDE.USD ? cbrDE.USD.Value : null;
     var fmtRub = function(v) { return fmtRate(v) + ' ₽'; };
     renderDeltas('usd-deltas', [
-      { label: 'к вчера',                    now: now, then: histY.usd  && histY.usd.rub,  fmt: fmtRub },
-      { label: 'к концу ' + lme.slice(0, 7), now: now, then: histM.usd  && histM.usd.rub,  fmt: fmtRub },
-      { label: 'к концу ' + lye.slice(0, 7), now: now, then: histLY.usd && histLY.usd.rub, fmt: fmtRub },
-      { label: 'к концу ' + lde.slice(0, 7), now: now, then: cbrUsdDE,                      fmt: fmtRub },
+      { label: 'к вчера',                    now: now, then: histY  && histY.usd  && histY.usd.rub,  fmt: fmtRub },
+      { label: 'к концу ' + lme.slice(0, 7), now: now, then: histM  && histM.usd  && histM.usd.rub,  fmt: fmtRub },
+      { label: 'к концу ' + lye.slice(0, 7), now: now, then: histLY && histLY.usd && histLY.usd.rub, fmt: fmtRub },
+      { label: 'к концу ' + lde.slice(0, 7), now: now, then: cbrUsdDE,                                fmt: fmtRub },
     ]);
   } catch (e) {
     document.getElementById('usd-val').innerHTML = '<span style="font-size:1rem;color:#f87171">Ошибка загрузки</span>';
@@ -646,23 +648,22 @@ async function loadAMDRUB() {
     var yest = yesterday();
     var lme  = lastMonthEnd();
     var lye  = lastYearEnd();
-
     var lde  = decadeEnd();
+
     var [curData, histY, histM, histLY, cbrDE] = await Promise.all([
       currencyFetch('amd', 'latest'),
-      currencyFetch('amd', yest),
-      currencyFetch('amd', lme),
-      currencyFetch('amd', lye),
-      cbrFetch(lde),
+      safe(currencyFetch('amd', yest)),
+      safe(currencyFetch('amd', lme)),
+      safe(currencyFetch('amd', lye)),
+      safe(cbrFetch(lde)),
     ]);
 
-    var amdRub = curData.amd.rub;
+    var amdRub = curData && curData.amd && curData.amd.rub;
     if (!amdRub) throw new Error('no rate');
     var now = 1 / amdRub;
 
     document.getElementById('amd-val').textContent = fmtRate(now, 2) + ' ֏';
 
-    // CBR даёт AMD за Nominal=100, поэтому RUB/AMD = Value/100 → AMD/RUB = 100/Value
     var cbrAmdDE = cbrDE && cbrDE.AMD ? 100 / cbrDE.AMD.Value : null;
     var inv = function(x) { return x && x.amd && x.amd.rub ? 1 / x.amd.rub : null; };
     var fmtAmd = function(v) { return fmtRate(v, 2) + ' ֏'; };
@@ -670,7 +671,7 @@ async function loadAMDRUB() {
       { label: 'к вчера',                    now: now, then: inv(histY),  fmt: fmtAmd },
       { label: 'к концу ' + lme.slice(0, 7), now: now, then: inv(histM),  fmt: fmtAmd },
       { label: 'к концу ' + lye.slice(0, 7), now: now, then: inv(histLY), fmt: fmtAmd },
-      { label: 'к концу ' + lde.slice(0, 7), now: now, then: cbrAmdDE,   fmt: fmtAmd },
+      { label: 'к концу ' + lde.slice(0, 7), now: now, then: cbrAmdDE,    fmt: fmtAmd },
     ]);
   } catch (e) {
     document.getElementById('amd-val').innerHTML = '<span style="font-size:1rem;color:#f87171">Ошибка загрузки</span>';
@@ -1121,11 +1122,10 @@ function renderChecklist() {
 
   document.getElementById('cl-items').innerHTML = CL_ITEMS.map(function(label, i) {
     var isDone = !!state[i];
-    return '<label class="checklist-item' + (isDone ? ' done' : '') + '" onclick="clToggle(' + i + ')">' +
-      '<input type="checkbox"' + (isDone ? ' checked' : '') + '>' +
+    return '<div class="checklist-item' + (isDone ? ' done' : '') + '" onclick="clToggle(' + i + ')">' +
       '<span class="check-box">' + (isDone ? '✓' : '') + '</span>' +
       '<span class="check-label">' + escHtml(label) + '</span>' +
-    '</label>';
+    '</div>';
   }).join('');
 }
 
